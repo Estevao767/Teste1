@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Caixa QR</title>
+<style>
+:root{--bg:#f5f6f8;--card:#fff;--tx:#16181d;--mu:#6b7280;--bd:#e3e6ea;--ac:#0f766e;--act:#fff;--rd:#c62828;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#101216;--card:#1a1d23;--tx:#eef0f3;--mu:#9aa1ad;--bd:#2a2e36;--ac:#2dd4bf;--act:#06201c;--rd:#ef5350}}
+:root[data-theme="dark"]{--bg:#101216;--card:#1a1d23;--tx:#eef0f3;--mu:#9aa1ad;--bd:#2a2e36;--ac:#2dd4bf;--act:#06201c;--rd:#ef5350}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font:16px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;max-width:640px;margin-inline:auto}
+nav{display:flex;position:sticky;top:env(safe-area-inset-top,0px);background:var(--bg);z-index:5;border-bottom:1px solid var(--bd)}
+nav button{flex:1;padding:14px 4px;border:0;background:none;color:var(--mu);font:600 15px inherit;font-family:inherit;border-bottom:3px solid transparent}
+nav button.on{color:var(--ac);border-color:var(--ac)}
+main{padding:14px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:12px;margin-bottom:12px}
+button,input,select{font:inherit;color:var(--tx)}
+input,select{width:100%;padding:11px;border:1px solid var(--bd);border-radius:10px;background:var(--bg);margin-top:4px}
+label{font-size:13px;color:var(--mu);display:block;margin-top:8px}
+.btn{padding:11px 14px;border-radius:10px;border:1px solid var(--bd);background:var(--card);font-weight:600}
+.pri{background:var(--ac);color:var(--act);border-color:var(--ac)}
+.dng{color:var(--rd)}
+.row{display:flex;gap:8px;align-items:center}
+.row>*{flex:1}
+.sp{justify-content:space-between}
+.sp>*{flex:none}
+video{width:100%;border-radius:12px;background:#000;aspect-ratio:4/3;object-fit:cover}
+.total{font-size:30px;font-weight:800;color:var(--ac)}
+.mu{color:var(--mu);font-size:13px}
+.old{text-decoration:line-through;color:var(--mu);font-size:13px}
+.tag{display:inline-block;background:var(--ac);color:var(--act);border-radius:6px;padding:1px 7px;font-weight:700;font-size:13px}
+.q{display:inline-flex;gap:6px;align-items:center}
+.q button{width:34px;height:34px;border-radius:8px;border:1px solid var(--bd);background:var(--bg);font-size:18px}
+dialog{border:0;border-radius:16px;background:var(--card);color:var(--tx);max-width:340px;width:90%;text-align:center}
+dialog::backdrop{background:rgba(0,0,0,.55)}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(20px + env(safe-area-inset-bottom,0px));background:var(--tx);color:var(--bg);padding:10px 16px;border-radius:20px;font-weight:600;opacity:0;transition:.2s;pointer-events:none;z-index:20}
+.toast.show{opacity:1}
+.hide{display:none}
+@media print{body>*:not(dialog){display:none}dialog{box-shadow:none}dialog button{display:none}}
+</style>
+</head>
+<body>
+<nav>
+  <button data-t="caixa" class="on">Caixa</button>
+  <button data-t="prod">Produtos</button>
+  <button data-t="novo">Cadastrar</button>
+</nav>
+<main>
+<!-- CAIXA -->
+<section id="caixa">
+  <div class="card">
+    <video id="vid" playsinline muted class="hide"></video>
+    <div class="row" style="margin-top:8px"><button class="btn pri" id="cam">Ativar câmera</button><button class="btn pri" id="pho">Fotografar QR</button><button class="btn" id="gb">Galeria</button></div><input type="file" id="fil" accept="image/*" capture="environment" class="hide"><input type="file" id="gal" accept="image/*" multiple class="hide"><div id="qb" class="hide" style="margin-top:8px"><div class="mu" id="qn2"></div><div id="th" style="display:flex;flex-wrap:wrap;gap:6px;margin:6px 0"></div><div class="row"><button class="btn" id="more">+ Outra foto</button><button class="btn pri" id="okb">OK, somar tudo</button></div><button class="btn dng" id="dis" style="width:100%;margin-top:6px">Descartar fotos</button></div>
+    <div class="row" style="margin-top:8px"><input id="man" placeholder="Código manual (ex: A1)" autocapitalize="characters" maxlength="6"><button class="btn" id="add" style="flex:none">Adicionar</button></div>
+  </div>
+  <div class="card"><div class="mu">Total da compra</div><div class="total" id="tot">R$ 0,00</div>
+    <div class="mu" id="cnt"></div></div>
+  <div id="cart"></div>
+  <button class="btn dng" id="clr" style="width:100%">Limpar compra</button>
+</section>
+<!-- PRODUTOS -->
+<section id="prod" class="hide">
+  <div class="card">
+    <input id="fn" placeholder="Pesquisar por nome ou código">
+    <div class="row"><select id="fc"><option value="">Todas as categorias</option></select></div>
+    <div class="row"><input id="fmin" type="number" step="0.01" min="0" placeholder="Preço mín."><input id="fmax" type="number" step="0.01" min="0" placeholder="Preço máx."></div>
+  </div>
+  <div id="list"></div>
+</section>
+<!-- NOVO -->
+<section id="novo" class="hide">
+  <form class="card" id="f" onsubmit="return false">
+    <b id="ft">Novo produto</b>
+    <label>Nome</label><input id="n" required>
+    <label>Categoria</label><input id="c" list="cats" placeholder="Ex: Bebidas">
+    <datalist id="cats"></datalist>
+    <label>Preço (R$)</label><input id="p" type="number" step="0.01" min="0">
+    <label>Promoção: preço promocional (opcional)</label><input id="pr" type="number" step="0.01" min="0">
+    <label>Código</label><input id="cd" readonly>
+    <div class="row" style="margin-top:12px"><button class="btn pri" id="sv">Salvar</button><button class="btn" id="cx">Cancelar</button></div>
+  </form>
+</section>
+</main>
+<dialog id="dq"><div id="qs"></div><h2 id="qc" style="margin:6px 0"></h2><div class="mu" id="qn"></div>
+  <div class="row" style="margin-top:12px"><button class="btn" onclick="window.print()">Imprimir</button><button class="btn pri" onclick="dq.close()">Fechar</button></div></dialog>
+<div class="toast" id="ts"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+<script>
+const $=id=>document.getElementById(id);
+const brl=v=>Number(v).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let prods=[],cart={},editing=null;
+function load(){try{prods=JSON.parse(localStorage.getItem('cq_p')||'[]');cart=JSON.parse(localStorage.getItem('cq_c')||'{}')}catch(e){prods=[];cart={}}}
+function save(){try{localStorage.setItem('cq_p',JSON.stringify(prods));localStorage.setItem('cq_c',JSON.stringify(cart))}catch(e){}}
+function toast(m,ms){const t=$('ts');t.textContent=m;t.classList.add('show');clearTimeout(t._h);t._h=setTimeout(()=>t.classList.remove('show'),ms||1600)}
+const eff=p=>p.promo>0&&p.promo<p.price?p.promo:p.price;
+const byCode=c=>prods.find(p=>p.code===c);
+function nextCode(){for(const L of 'ABCDEFGHIJKLMNOPQRSTUVWXYZ')for(let n=1;n<=99;n++){if(!byCode(L+n))return L+n}return ''}
+
+/* QR: payload curto (ex: A1), modo alfanumérico, correção H, margem de 4 módulos */
+function qrSvg(code){
+  const q=qrcode(0,'H');q.addData(code,'Alphanumeric');q.make();
+  const n=q.getModuleCount(),m=4,s=n+2*m;let d='';
+  for(let r=0;r<n;r++)for(let c=0;c<n;c++)if(q.isDark(r,c))d+=`M${c+m} ${r+m}h1v1h-1z`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${s} ${s}" shape-rendering="crispEdges" style="width:100%;max-width:260px;background:#fff"><rect width="${s}" height="${s}" fill="#fff"/><path d="${d}" fill="#000"/></svg>`;
+}
+function showQr(code){const p=byCode(code);$('qs').innerHTML=qrSvg(code);$('qc').textContent=code;$('qn').textContent=p?p.name+' · '+brl(eff(p)):'';$('dq').showModal()}
+
+/* Abas */
+document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>tab(b.dataset.t));
+function tab(t){document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.t===t));
+  ['caixa','prod','novo'].forEach(i=>$(i).classList.toggle('hide',i!==t));
+  if(t!=='caixa')stopCam();
+  if(t==='novo'&&editing===null)resetForm();
+  if(t==='prod')renderList()}
+
+/* Cadastro / atualização */
+function resetForm(){editing=null;$('ft').textContent='Novo produto';['n','c','p','pr'].forEach(i=>$(i).value='');$('cd').value=nextCode()}
+$('cx').onclick=()=>{editing=null;tab('prod')};
+$('sv').onclick=()=>{
+  const name=$('n').value.trim(),price=parseFloat($('p').value),promo=parseFloat($('pr').value)||0;
+  if(!name||isNaN(price)||price<0)return toast('Informe nome e preço');
+  if(promo&&promo>=price)return toast('Promoção deve ser menor que o preço');
+  const o={name,cat:$('c').value.trim(),price,promo};
+  if(editing){Object.assign(byCode(editing),o);toast('Produto atualizado')}
+  else{const code=nextCode();if(!code)return toast('Limite de códigos atingido');prods.push({code,...o});toast('Cadastrado: '+code)}
+  save();const c=editing||prods[prods.length-1].code;editing=null;tab('prod');if(!o.name)return;showQr(c)};
+function edit(code){const p=byCode(code);editing=code;tab('novo');$('ft').textContent='Editar '+code;
+  $('n').value=p.name;$('c').value=p.cat;$('p').value=p.price;$('pr').value=p.promo||'';$('cd').value=code}
+function remove(code){const p=byCode(code);if(!confirm('Remover '+p.name+'?'))return;prods=prods.filter(x=>x.code!==code);delete cart[code];save();renderList();renderCart()}
+
+/* Lista + pesquisa por nome, preço e categoria */
+['fn','fc','fmin','fmax'].forEach(i=>$(i).oninput=renderList);
+function renderList(){
+  const cats=[...new Set(prods.map(p=>p.cat).filter(Boolean))].sort();
+  const cur=$('fc').value;$('fc').innerHTML='<option value="">Todas as categorias</option>'+cats.map(c=>`<option ${c===cur?'selected':''}>${esc(c)}</option>`).join('');
+  $('cats').innerHTML=cats.map(c=>`<option value="${esc(c)}">`).join('');
+  const t=$('fn').value.trim().toLowerCase(),mn=parseFloat($('fmin').value),mx=parseFloat($('fmax').value);
+  const r=prods.filter(p=>(!t||p.name.toLowerCase().includes(t)||p.code.toLowerCase()===t)&&(!$('fc').value||p.cat===$('fc').value)&&(isNaN(mn)||eff(p)>=mn)&&(isNaN(mx)||eff(p)<=mx));
+  $('list').innerHTML=r.length?r.map(p=>`<div class="card"><div class="row sp"><div><span class="tag">${p.code}</span> <b>${esc(p.name)}</b><div class="mu">${esc(p.cat||'Sem categoria')}</div></div>
+    <div style="text-align:right">${eff(p)<p.price?`<div class="old">${brl(p.price)}</div>`:''}<b>${brl(eff(p))}</b></div></div>
+    <div class="row" style="margin-top:8px"><button class="btn" onclick="showQr('${p.code}')">QR Code</button><button class="btn" onclick="edit('${p.code}')">Editar</button><button class="btn dng" onclick="remove('${p.code}')">Remover</button></div></div>`).join(''):'<p class="mu" style="text-align:center">Nenhum produto encontrado.</p>'}
+
+/* Caixa */
+function addToCart(raw){const code=String(raw).trim().toUpperCase();const p=byCode(code);
+  if(!p){toast('Código não encontrado: '+code);return false}
+  cart[code]=(cart[code]||0)+1;save();renderCart();toast('+ '+p.name);if(navigator.vibrate)try{navigator.vibrate(60)}catch(e){}return true}
+function renderCart(){
+  let total=0,n=0;const rows=Object.keys(cart).filter(c=>byCode(c)).map(c=>{const p=byCode(c),q=cart[c],sub=eff(p)*q;total+=sub;n+=q;
+    return `<div class="card row sp"><div><b>${esc(p.name)}</b> <span class="tag">${c}</span><div class="mu">${brl(eff(p))} × ${q}</div></div>
+    <div class="q"><button onclick="qty('${c}',-1)">−</button><b>${q}</b><button onclick="qty('${c}',1)">+</button></div><b style="min-width:76px;text-align:right">${brl(sub)}</b></div>`}).join('');
+  $('cart').innerHTML=rows;$('tot').textContent=brl(total);$('cnt').textContent=n+(n===1?' item':' itens')}
+function qty(c,d){cart[c]=(cart[c]||0)+d;if(cart[c]<=0)delete cart[c];save();renderCart()}
+$('clr').onclick=()=>{if(Object.keys(cart).length&&confirm('Limpar a compra?')){cart={};save();renderCart()}};
+$('add').onclick=()=>{if(addToCart($('man').value))$('man').value=''};
+$('man').onkeydown=e=>{if(e.key==='Enter')$('add').click()};
+
+/* Câmera */
+let stream=null,raf=0,last='',lastT=0;
+const cv=document.createElement('canvas'),cx=cv.getContext('2d',{willReadFrequently:true});
+async function startCam(){
+  try{stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1280}},audio:false});
+    const v=$('vid');v.srcObject=stream;v.classList.remove('hide');await v.play();$('cam').textContent='Desativar câmera';scan()}
+  catch(e){toast(e&&e.name==='NotAllowedError'?'Câmera bloqueada aqui. Use Fotografar QR.':'Câmera indisponível ('+(e&&e.name||'erro')+'). Use Fotografar QR.',3500)}}
+function stopCam(){cancelAnimationFrame(raf);if(stream){stream.getTracks().forEach(t=>t.stop());stream=null}$('vid').classList.add('hide');$('cam').textContent='Ativar câmera'}
+$('cam').onclick=()=>stream?stopCam():startCam();
+function scan(){const v=$('vid');
+  if(v.readyState>=2&&v.videoWidth){const w=Math.min(640,v.videoWidth),h=Math.round(w*v.videoHeight/v.videoWidth);cv.width=w;cv.height=h;cx.drawImage(v,0,0,w,h);
+    const r=jsQR(cx.getImageData(0,0,w,h).data,w,h,{inversionAttempts:'attemptBoth'});
+    if(r&&r.data){const c=r.data.trim().toUpperCase(),now=Date.now();if(c!==last||now-lastT>2000){last=c;lastT=now;addToCart(c)}}}
+  raf=requestAnimationFrame(scan)}
+
+/* Foto: usa o app de câmera do celular e decodifica a imagem */
+let queue=[];
+function renderQ(){$('qb').classList.toggle('hide',!queue.length);$('qn2').textContent=queue.length+(queue.length===1?' foto na lista':' fotos na lista')+' (toque na miniatura para remover)';$('th').innerHTML='';
+  queue.forEach((q,i)=>{const im=document.createElement('img');im.src=q.url;im.style.cssText='width:56px;height:56px;object-fit:cover;border-radius:8px';im.onclick=()=>{URL.revokeObjectURL(q.url);queue.splice(i,1);renderQ()};$('th').appendChild(im)})}
+function enq(e){for(const f of e.target.files)queue.push({file:f,url:URL.createObjectURL(f)});e.target.value='';renderQ()}
+$('fil').onchange=enq;$('gal').onchange=enq;
+$('pho').onclick=()=>$('fil').click();$('more').onclick=()=>$('fil').click();$('gb').onclick=()=>$('gal').click();
+$('dis').onclick=()=>{queue.forEach(q=>URL.revokeObjectURL(q.url));queue=[];renderQ()};
+$('okb').onclick=async()=>{if(!queue.length)return;const b=$('okb');b.disabled=true;b.textContent='Lendo...';let ok=0;const keep=[];
+  for(const q of queue){const c=await decodeFile(q.file);if(c&&addToCart(c)){ok++;URL.revokeObjectURL(q.url)}else keep.push(q)}
+  queue=keep;renderQ();b.disabled=false;b.textContent='OK, somar tudo';
+  toast(ok+(ok===1?' produto somado':' produtos somados')+(keep.length?'. '+keep.length+' sem leitura: tire outra foto ou remova.':''),4000)};
+function decodeFile(f){return new Promise(done=>{
+  const img=new Image();img.onload=async()=>{let ok=false;try{if(window.BarcodeDetector){const bd=new BarcodeDetector({formats:['qr_code']});const rs=await bd.detect(img);if(rs.length){URL.revokeObjectURL(img.src);return done(rs[0].rawValue)}}}catch(e){}
+    for(const mx of [2400,1600,1100,700,450]){const k=Math.min(1,mx/Math.max(img.width,img.height)),w=Math.round(img.width*k),h=Math.round(img.height*k);
+      cv.width=w;cv.height=h;cx.drawImage(img,0,0,w,h);
+      const r=jsQR(cx.getImageData(0,0,w,h).data,w,h,{inversionAttempts:'attemptBoth'});
+      if(r&&r.data){ok=r.data;break}}
+    URL.revokeObjectURL(img.src);done(ok||null)};
+  img.onerror=()=>done(null);img.src=URL.createObjectURL(f)})}
+
+load();renderCart();resetForm();
+</script>
+</body>
+</html>
